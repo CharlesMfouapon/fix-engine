@@ -1,0 +1,43 @@
+name: C++ CI with Fuzzing
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        build-type: [Release, Debug]
+        sanitizer: [OFF, ON]
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Configure CMake
+      run: |
+        cmake -B build \
+          -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
+          -DENABLE_ASAN=${{ matrix.sanitizer }} \
+          -DENABLE_UBSAN=${{ matrix.sanitizer }}
+    
+    - name: Build
+      run: cmake --build build --config ${{ matrix.build-type }} -j$(nproc)
+    
+    - name: Test
+      run: cd build && ctest --output-on-failure
+    
+    - name: Run fuzzer (smoke)
+      if: matrix.sanitizer == 'ON'
+      run: ./build/fuzz_parser -max_len=1024 -runs=50000
+
+  static-analysis:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Run clang-tidy
+      run: |
+        cmake -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+        run-clang-tidy -p build -fix -format -checks='-*,bugprone-*,performance-*,cppcoreguidelines-*'
