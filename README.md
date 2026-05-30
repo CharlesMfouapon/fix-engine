@@ -44,5 +44,20 @@ Example
 
 // Build a NewOrderSingle
 auto msg = fix::FixSession::buildNewOrderSingle(
-    "CL-001", "AAPL
+    "CL-001", "AAPL", fix::Side::Buy, 150.25, 1000
+);
+
+// Parse incoming message
+fix::FixMessage parsed(msg);
+auto symbol = parsed.get<fix::Tag::Symbol>();  // "AAPL"
+auto price  = parsed.get<fix::Tag::Price>();   // 150.25
 ```
+Integration with Order Book
+
+This engine is designed to feed the [limit-order-book](https://github.com/CharlesMfouapon/limit-order-book) engine. Together they form:
+
+* FIX Engine → Network ingress, session management, protocol compliance
+* Order Book → Core matching, price-time priority, trade generation
+* Immutable Ledger → Settlement, audit trail, cryptographic verification
+
+Read [ARCHITECTURE.md](ARCHITECTURE.md) for design rationale.
